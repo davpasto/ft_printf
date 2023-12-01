@@ -6,7 +6,7 @@
 /*   By: davpasto </var/spool/mail/davpasto>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/13 08:00:54 by davpasto          #+#    #+#             */
-/*   Updated: 2023/11/18 06:34:40 by davpasto         ###   ########.fr       */
+/*   Updated: 2023/12/01 04:06:58 by davpasto         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,20 +15,15 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
+#include <stdint.h>
 
 #define H_L_BASE "0123456789abcdef"
 #define H_U_BASE "0123456789ABCDEF"
 
-int	print_char(int c)
-{
-	return (write(1, &c, 1));
-}
-
 int	print_str(char *str)
 {
-	char	*ptr = NULL;
+	const char	*ptr = str;
 
-	ptr = str;
 	if (!str)
 		return (write(1, "(null)", 6));
 	while (*ptr)
@@ -38,6 +33,23 @@ int	print_str(char *str)
 		++ptr;
 	}
 	return (ptr - str);
+}
+
+int	up_digit(unsigned long nb, int base, char *symbols)
+{
+	static int		count;
+
+	count = 0;
+	if (nb >= (unsigned long)base)
+	{
+		up_digit(nb / base, base, symbols);
+		nb = nb % base;
+	}
+	if (count == 0)
+		count += write(1, "0x", 2);
+	count++;
+	write(1, &symbols[nb], 1);
+	return (count);
 }
 
 int	p_digit(long nb, int base, char *symbols)
@@ -50,7 +62,7 @@ int	p_digit(long nb, int base, char *symbols)
 		return (p_digit(-nb, base, symbols) + 1);
 	}
 	else if (nb < base)
-		return (print_char(symbols[nb]));
+		return (write(1, &symbols[nb], 1));
 	else
 	{
 		count = p_digit(nb / base, base, symbols);
@@ -61,10 +73,14 @@ int	p_digit(long nb, int base, char *symbols)
 int	print_format(char flag, va_list ap)
 {
 	int	count;
+	int	c;
 
 	count = 0;
 	if (flag == 'c')
-		count += print_char(va_arg(ap, int));
+	{
+		c = va_arg(ap, int);
+		count += write(1, &c, 1);
+	}
 	else if (flag == 's')
 		count += print_str(va_arg(ap, char *));
 	else if (flag == 'd' || flag == 'i')
@@ -76,12 +92,9 @@ int	print_format(char flag, va_list ap)
 	else if (flag == 'u')
 		count += p_digit((unsigned int)va_arg(ap, unsigned int), 10, H_L_BASE);
 	else if (flag == '%')
-		return (print_char('%'));
+		return (write(1, "%", 1));
 	else if (flag == 'p')
-	{
-		count += write(1, "0x", 2);
-		count += p_digit((unsigned long long)va_arg(ap, void *), 16, H_L_BASE);
-	}
+		count += up_digit((unsigned long)va_arg(ap, void *), 16, H_L_BASE);
 	return (count);
 }
 
@@ -96,7 +109,7 @@ int	ft_printf(const char *format, ...)
 	va_start(ap, format);
 	while (*format)
 	{
-		if (*format == '%')
+		if (*format == '%' && *format + 1)
 			counter += print_format(*(++format), ap);
 		else
 			counter += write(1, format, 1);
@@ -106,12 +119,13 @@ int	ft_printf(const char *format, ...)
 	return (counter);
 }
 
-int	main()
+/*
+int main()
 {
-	char *ptr = "Hola";
-	//ft_printf("%p\n", ptr);
-	//printf("%p\n", ptr);
-	//printf("%d\n", printf("%p\n", ptr));
-	printf("%d\n", ft_printf("%pp%p%p", (void *)LONG_MAX + 423856, (void *)0, (void *)INT_MAX));
-	printf("%d\n", printf("%pp%p%p", (void *)LONG_MAX + 423856, (void *)0, (void *)INT_MAX));
+	char *ptr = "holaa";
+	printf("-> %d\n", ft_printf("%p", ""));	
+	printf("-> %d\n", ft_printf("%p", ""));	
+	printf("-> %d\n", printf("%p", ""));	
+	printf("-> %d\n", printf("%p", ""));	
 }
+*/
